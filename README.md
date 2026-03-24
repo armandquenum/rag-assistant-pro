@@ -66,7 +66,7 @@ Réponse + Sources citées
 
 ### 1. Clone le projet
 ```bash
-git clone https://github.com/TON_USERNAME/rag-project.git
+git clone https://github.com/armandquenum/rag-assistant-pro
 cd rag-project
 ```
 

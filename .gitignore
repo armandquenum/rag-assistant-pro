@@ -1,0 +1,21 @@
+# Clé API — ne jamais mettre sur GitHub
+.env
+
+# Environnement Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+env/
+
+# FAISS — base vectorielle locale
+*.index
+*.pkl
+
+# Documents uploadés — trop lourds pour GitHub
+documents/*
+!documents/.gitkeep
+temp_docs
+
+# VS Code
+.vscode/*

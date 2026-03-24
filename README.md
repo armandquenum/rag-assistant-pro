@@ -10,7 +10,7 @@ combinant découpage sémantique, architecture Parent-Child et reranking.
 
 ## 🚀 Démo en ligne
 
-👉 **[Accéder à l'application]([LIEN_STREAMLIT_ICI](https://rag-assistant-pro-4stm8dfyuvrvyqzk8r4z3e.streamlit.app/))**
+👉 **[Accéder à l'application](https://rag-assistant-pro-4stm8dfyuvrvyqzk8r4z3e.streamlit.app/)**
 
 ## 📋 Présentation
 

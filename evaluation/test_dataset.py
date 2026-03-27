@@ -39,7 +39,7 @@ MAX_TOTAL_QUESTIONS = 10
 # Utilitaires
 # ─────────────────────────────────────────
 
-def read_file_safely(file_path: str) -> pd.DataFrame:
+def _read_file_safely(file_path: str) -> pd.DataFrame:
     """
     Lit un fichier TSV avec gestion des encodages.
     Essaie utf-8-sig d'abord, puis latin-1.
@@ -89,7 +89,7 @@ def load_kaggle_dataset(
             continue
 
         # Chargement
-        df = read_file_safely(qa_file)
+        df = _read_file_safely(qa_file)
 
         # Nettoyage des colonnes
         df.columns = [col.strip() for col in df.columns]

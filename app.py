@@ -227,16 +227,31 @@ if question := st.chat_input("Pose ta question ici..."):
         with st.chat_message("assistant"):
             with st.spinner("🔍 Recherche en cours..."):
                 try:
-                    result = pipeline.query(question, history=st.session_state.messages)
+                    # Prépare l'historique pour le pipeline
+                    # On prend les 6 derniers messages pour ne pas
+                    # dépasser la fenêtre contextuelle du LLM
+                    chat_history = [
+                        (msg["role"], msg["content"])
+                        for msg in st.session_state.messages[-6:]
+                    ]
 
-                    def stream_data():
-                        for word in result["answer"].split(" "):
-                            yield word + " "
-                            import time
-                            time.sleep(0.02)
+                    # Query avec historique
+                    result = pipeline.query(
+                        question=question,
+                        chat_history=chat_history
+                    )
 
-                    st.write_stream(stream_data)
+                    st.markdown(result["answer"])
 
+                    # Affiche la question reformulée si différente
+                    if result["condensed_question"] != question:
+                        with st.expander("🔄 Question reformulée"):
+                            st.caption(
+                                f"Votre question a été reformulée en : "
+                                f"*{result['condensed_question']}*"
+                            )
+
+                    # Affiche les sources
                     with st.expander(
                         "📚 Sources consultées (Preuve sémantique)"
                     ):
@@ -247,6 +262,7 @@ if question := st.chat_input("Pose ta question ici..."):
                                 f"— Score : `{source['score']}`"
                             )
 
+                    # Sauvegarde dans l'historique
                     st.session_state.messages.append({
                         "role": "assistant",
                         "content": result["answer"],

@@ -28,3 +28,7 @@ streamlit==1.55.0
 # Utilitaires
 python-dotenv==1.2.2
 numpy==2.4.3
+
+# Evaluation
+ragas
+datasets

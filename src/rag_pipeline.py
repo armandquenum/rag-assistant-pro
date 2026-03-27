@@ -30,7 +30,7 @@ class RAGPipeline:
 
     PROMPT_TEMPLATE = """
     Tu es un assistant expert qui répond aux questions
-    en te basant sur le contexte fourni et l'historique de la discussion.
+    en te basant UNIQUEMENT sur le contexte fourni.
 
     Règles importantes :
     - Réponds uniquement avec les informations du contexte
@@ -39,15 +39,29 @@ class RAGPipeline:
     - Réponds en français
     - Ne divulgue jamais qui tu es
 
-    Historique de la conversation :
-    {history}
-
     Contexte :
     {context}
 
     Question : {question}
 
     Réponse :
+    """
+
+    # Ajoute ce prompt à côté de PROMPT_TEMPLATE
+    CONDENSE_QUESTION_TEMPLATE = """
+    Étant donné l'historique de conversation suivant et une question de suivi,
+    reformule la question de suivi en une question autonome et complète
+    qui peut être comprise sans l'historique.
+
+    Si la question est déjà autonome, retourne-la telle quelle.
+    Ne réponds pas à la question, reformule-la seulement.
+
+    Historique de conversation :
+    {chat_history}
+
+    Question de suivi : {question}
+
+    Question reformulée :
     """
 
     def __init__(self, model_name: str = None, top_k: int = 3):
@@ -75,6 +89,7 @@ class RAGPipeline:
 
         # LLM
         self._init_llm()
+        self._init_condense_prompt()
 
         # Prompt
         self.prompt = ChatPromptTemplate.from_template(
@@ -102,6 +117,54 @@ class RAGPipeline:
             api_key=api_key
         )
         print(f"✅ LLM Groq initialisé : {self.model_name}")
+
+
+    def _init_condense_prompt(self):
+        """
+        Initialise le prompt de reformulation de question.
+        Appelé une fois dans __init__.
+        """
+        self.condense_prompt = ChatPromptTemplate.from_template(
+            self.CONDENSE_QUESTION_TEMPLATE
+        )
+
+    def _condense_question(
+        self,
+        question: str,
+        chat_history: list
+    ) -> str:
+        """
+        Reformule la question en tenant compte de l'historique.
+        Si pas d'historique, retourne la question telle quelle.
+
+        Args:
+            question: question actuelle de l'utilisateur
+            chat_history: liste de tuples (role, message)
+
+        Returns:
+            Question reformulée et autonome
+        """
+        # Pas d'historique → pas besoin de reformuler
+        if not chat_history:
+            return question
+
+        # Formate l'historique en texte lisible
+        history_text = ""
+        for role, message in chat_history:
+            prefix = "Humain" if role == "user" else "Assistant"
+            history_text += f"{prefix} : {message}\n"
+
+        # Reformule la question
+        prompt_value = self.condense_prompt.invoke({
+            "chat_history": history_text,
+            "question": question
+        })
+
+        condensed = self.llm.invoke(prompt_value)
+        condensed_question = condensed.content.strip()
+
+        print(f"\n🔄 Question reformulée : '{condensed_question}'")
+        return condensed_question
 
     def index_documents(
         self,
@@ -159,16 +222,21 @@ class RAGPipeline:
         self.retriever = Retriever(self.vector_store, self.top_k)
         print(f"✅ Index chargé avec succès.")
 
-    def query(self, question: str, history: list = None) -> dict:
+    def query(
+        self,
+        question: str,
+        chat_history: list = None
+    ) -> dict:
         """
-        Pose une question au RAG.
+        Pose une question au RAG avec historique conversationnel.
 
         Args:
             question: question de l'utilisateur
-            history: historique de la conversation
+            chat_history: liste de tuples (role, message)
+                        ex: [("user", "Bonjour"), ("assistant", "Bonjour !")]
 
         Returns:
-            Dict : answer, sources, context
+            Dict : answer, sources, context, condensed_question
         """
         if not self.retriever:
             raise ValueError(
@@ -178,34 +246,39 @@ class RAGPipeline:
 
         if not question.strip():
             raise ValueError("La question est vide.")
-        
-        formatted_history = ""
-        if history:
-            # On ne prend que les 3-4 derniers messages pour économiser les tokens (TPM)
-            for msg in history[-4:]: 
-                role = "Utilisateur" if msg["role"] == "user" else "Assistant"
-                formatted_history += f"{role}: {msg['content']}\n"
 
-        print(f"\n💬 Question : {question}")
+        chat_history = chat_history or []
 
-        # Récupère les chunks pertinents
-        retrieved_data = self.retriever.retrieve_and_format(question)
+        print(f"\n💬 Question originale : {question}")
 
-        # Construit le prompt
+        # Étape 1 — Reformule la question avec l'historique
+        condensed_question = self._condense_question(
+            question,
+            chat_history
+        )
+
+        # Étape 2 — Récupère les chunks pertinents
+        # sur la question reformulée
+        retrieved_data = self.retriever.retrieve_and_format(
+            condensed_question
+        )
+
+        # Étape 3 — Construit le prompt avec historique
         prompt_value = self.prompt.invoke({
             "context": retrieved_data["context"],
-            "question": question,
-            "history": formatted_history
+            "question": condensed_question
         })
 
-        # Génère la réponse
+        # Étape 4 — Génère la réponse
         print(f"⏳ Génération via {self.model_name}...")
         response = self.llm.invoke(prompt_value)
 
         return {
             "answer": response.content,
             "sources": retrieved_data["sources"],
-            "context": retrieved_data["context"]
+            "context": retrieved_data["context"],
+            "chunks": retrieved_data["chunks"],      # ← obligatoire
+            "condensed_question": condensed_question
         }
 
     def reset_index(self):

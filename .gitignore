@@ -11,6 +11,9 @@ env/
 # FAISS — base vectorielle locale
 *.index
 *.pkl
+*.faiss
+*.txt
+parents.json
 
 # Documents uploadés — trop lourds pour GitHub
 documents/*
@@ -19,3 +22,6 @@ temp_docs
 
 # VS Code
 .vscode/*
+
+# Dataset d'évaluation
+evaluation/kaggle_dataset/

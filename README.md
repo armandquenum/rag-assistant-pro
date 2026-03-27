@@ -103,6 +103,26 @@ streamlit run app.py
 3. **Pose tes questions** — en langage naturel dans le chat
 4. **Consulte les sources** — chaque réponse cite ses sources
 
+
+## 📊 Évaluation RAGAS
+
+Évaluation réalisée sur le **Stanford Question-Answer Dataset (Kaggle)**
+avec **10 questions** de niveau facile.
+
+| Métrique | Score | Interprétation |
+|---|---|---|
+| Faithfulness | 0.78 ✅ | Peu d'hallucinations |
+| Answer Relevancy | 0.76 ✅ | Réponses pertinentes |
+| Context Recall | 0.67 ⚠️ | Couverture partielle |
+| Context Precision | 0.50 ⚠️ | Bruit dans les chunks |
+| **Score global** | **0.68** | Bon niveau pour un RAG M1 |
+
+
+### Stack d'évaluation
+- Dataset : Stanford Q&A Dataset (Kaggle)
+- LLM évaluateur : Gemini 2.5 Flash Lite
+- Embeddings : sentence-transformers/all-MiniLM-L6-v2
+
 ## 📁 Structure du projet
 ```
 rag-project/
@@ -114,6 +134,11 @@ rag-project/
 │   ├── retriever.py          # Recherche Parent-Child
 │   ├── reranker.py           # CrossEncoder reranking
 │   └── rag_pipeline.py       # Orchestrateur principal
+├── evaluation/
+|    ├── evaluate.py        # Evaluateur du
+|    ├── test_dataset.py    # Logique de chargement du Datatest d'valuation
+|    └── results/
+|      └── ragas_20260326_184316.json  # scores réels
 ├── app.py                    # Interface Streamlit
 ├── requirements.txt
 ├── .env.example
@@ -125,6 +150,7 @@ rag-project/
 | Variable | Description | Obligatoire |
 |---|---|---|
 | `GROQ_API_KEY` | Clé API Groq pour le LLM | ✅ Oui |
+| `GOOGLE_API_KEY` | Clé API Google pour le juge util si vous voulez faire une évaluation du RAG | ❌ Non |
 
 ## 👤 Auteur
 

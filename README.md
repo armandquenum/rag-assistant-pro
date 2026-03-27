@@ -112,10 +112,10 @@ avec **10 questions** de niveau facile.
 | Métrique | Score | Interprétation |
 |---|---|---|
 | Faithfulness | 0.78 ✅ | Peu d'hallucinations |
-| Answer Relevancy | 0.76 ✅ | Réponses pertinentes |
+| Answer Relevancy | 0.83 ✅ | Réponses pertinentes |
 | Context Recall | 0.67 ⚠️ | Couverture partielle |
-| Context Precision | 0.50 ⚠️ | Bruit dans les chunks |
-| **Score global** | **0.68** | Bon niveau pour un RAG M1 |
+| Context Precision | 0.67 ⚠️ | Bruit dans les chunks |
+| **Score global** | **0.73** | Bon niveau pour un RAG M1 |
 
 
 ### Stack d'évaluation

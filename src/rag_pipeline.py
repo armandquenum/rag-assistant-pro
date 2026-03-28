@@ -29,39 +29,39 @@ class RAGPipeline:
     DEFAULT_MODEL = "llama-3.1-8b-instant"
 
     PROMPT_TEMPLATE = """
-    Tu es un assistant expert qui répond aux questions
-    en te basant UNIQUEMENT sur le contexte fourni.
+    You are an expert assistant who answers questions
+    based SOLELY on the context provided.
 
-    Règles importantes :
-    - Réponds uniquement avec les informations du contexte
-    - Si la réponse n'est pas dans le contexte, dis-le clairement
-    - Cite toujours tes sources (Nom du fichier et page)
-    - Réponds en français
-    - Ne divulgue jamais qui tu es
+    Important rules:
+    - Answer using only the information in the context
+    - If the answer is not in the context, state this clearly
+    - Always cite your sources (file name and page)
+    - Answer in French
+    - Never reveal your identity
 
-    Contexte :
+    Context:
     {context}
 
-    Question : {question}
+    Question: {question}
 
-    Réponse :
+    Answer:
     """
 
     # Ajoute ce prompt à côté de PROMPT_TEMPLATE
     CONDENSE_QUESTION_TEMPLATE = """
-    Étant donné l'historique de conversation suivant et une question de suivi,
-    reformule la question de suivi en une question autonome et complète
-    qui peut être comprise sans l'historique.
+    Given the following chat history and a follow-up question,
+    rephrase the follow-up question into a standalone, complete question
+    that can be understood without the context of the chat history.
 
-    Si la question est déjà autonome, retourne-la telle quelle.
-    Ne réponds pas à la question, reformule-la seulement.
+    If the question is already standalone, return it as is.
+    Do not answer the question; simply rephrase it.
 
-    Historique de conversation :
+    Conversation history:
     {chat_history}
 
-    Question de suivi : {question}
+    Follow-up question: {question}
 
-    Question reformulée :
+    Rephrased question:
     """
 
     def __init__(self, model_name: str = None, top_k: int = 3):
@@ -206,7 +206,14 @@ class RAGPipeline:
         self.vector_store.save()
 
         # Étape 5 — Initialise le retriever
-        self.retriever = Retriever(self.vector_store, self.top_k)
+        self.retriever = Retriever(
+            vector_store=self.vector_store,
+            top_k=self.top_k,
+            llm=self.llm,
+            use_hyde=True,
+            use_multi_query=True,
+            n_queries=3
+        )
 
         print(f"\n✅ Indexation terminée — RAG prêt !")
 
@@ -219,7 +226,14 @@ class RAGPipeline:
             )
 
         self.vector_store.load()
-        self.retriever = Retriever(self.vector_store, self.top_k)
+        self.retriever = Retriever(
+            vector_store=self.vector_store,
+            top_k=self.top_k,
+            llm=self.llm,
+            use_hyde=True,
+            use_multi_query=True,
+            n_queries=3
+        )
         print(f"✅ Index chargé avec succès.")
 
     def query(

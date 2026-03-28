@@ -32,7 +32,7 @@ QA_FILES = [
 ]
 
 MAX_QUESTIONS_PER_ARTICLE = 2
-MAX_TOTAL_QUESTIONS = 10
+MAX_TOTAL_QUESTIONS = 20
 
 
 # ─────────────────────────────────────────
@@ -103,7 +103,7 @@ def load_kaggle_dataset(
         df["DifficultyFromQuestioner"] = (
             df["DifficultyFromQuestioner"].str.lower()
         )
-        df = df[df["DifficultyFromQuestioner"] == difficulty]
+        df = df[df["DifficultyFromQuestioner"] != difficulty]
 
         # Filtre réponses oui/non
         df = df[~df['Answer'].str.lower().isin(

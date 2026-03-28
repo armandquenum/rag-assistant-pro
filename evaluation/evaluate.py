@@ -20,6 +20,8 @@ from ragas.metrics import (
 
 from ragas.llms import LangchainLLMWrapper
 from ragas.embeddings import LangchainEmbeddingsWrapper
+from langchain_mistralai import ChatMistralAI
+from langchain_groq import ChatGroq
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_huggingface import HuggingFaceEmbeddings
 from src.rag_pipeline import RAGPipeline
@@ -117,25 +119,51 @@ def run_evaluation():
     if failed:
         print(f"⚠️ {len(failed)} question(s) ignorées")
 
-    # ── Étape 4 : Configuration RAGAS avec Gemini ──
-    print(f"\n⚙️ Configuration RAGAS avec Google Gemini...")
+    # ── Étape 4 : Configuration RAGAS ──
+    print(f"\n⚙️ Configuration RAGAS avec Mistral + Groq...")
 
-    
-    google_llm = ChatGoogleGenerativeAI(
+    # Mistral — LLM principal
+    mistral_llm = ChatMistralAI(
+        model="mistral-small-latest",
+        mistral_api_key=os.getenv("MISTRAL_API_KEY"),
+        temperature=0,
+        max_retries=5,
+        timeout=120
+    )
+    ragas_llm_mistral = LangchainLLMWrapper(mistral_llm)
+
+    # Groq — fallback pour AnswerRelevancy
+    groq_llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash-lite",
         api_key=os.getenv("GOOGLE_API_KEY"),
-        temperature=0,
-        disable_streaming=True
+        timeout=120
     )
-    
-    ragas_llm = LangchainLLMWrapper(google_llm)
+    ragas_llm_groq = LangchainLLMWrapper(groq_llm)
 
+    # Embeddings multilingues
     hf_embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
+        model_name=(
+            "sentence-transformers/"
+            "paraphrase-multilingual-MiniLM-L12-v2"
+        )
     )
     ragas_embeddings = LangchainEmbeddingsWrapper(hf_embeddings)
 
-    print("✅ RAGAS configuré avec Gemini (Juge) + HuggingFace (Embeddings)")
+    # Métriques avec LLMs séparés
+    faithfulness_metric = Faithfulness()
+    faithfulness_metric.llm = ragas_llm_mistral
+
+    answer_relevancy_metric = AnswerRelevancy()
+    answer_relevancy_metric.llm = ragas_llm_groq
+    answer_relevancy_metric.embeddings = ragas_embeddings
+
+    context_recall_metric = ContextRecall()
+    context_recall_metric.llm = ragas_llm_mistral
+
+    context_precision_metric = ContextPrecision()
+    context_precision_metric.llm = ragas_llm_mistral
+
+    print("✅ RAGAS configuré avec Mistral + Groq fallback")
 
     # ── Étape 5 : Calcul des métriques RAGAS ──
     print(f"\n📊 Calcul des métriques RAGAS...")
@@ -150,17 +178,15 @@ def run_evaluation():
     results = evaluate(
         dataset=eval_dataset,
         metrics=[
-            Faithfulness(),
-            AnswerRelevancy(),
-            ContextRecall(),
-            ContextPrecision()
+            faithfulness_metric,
+            answer_relevancy_metric,
+            context_recall_metric,
+            context_precision_metric
         ],
-        llm=ragas_llm,
-        embeddings=ragas_embeddings,
         run_config=RunConfig(
-            max_workers=1,      # ← 1 seul appel à la fois
-            timeout=120,        # ← 2 minutes par appel
-            max_retries=3       # ← 3 tentatives si timeout
+            max_workers=1,
+            timeout=120,
+            max_retries=5
         )
     )
 

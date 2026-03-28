@@ -178,6 +178,67 @@ with st.sidebar:
                 f"Child : {new_chunk_size} / Parent : {5 * new_chunk_size}. "
                 "Réindexe tes documents pour appliquer."
             )
+        
+        st.divider()
+
+        # ── HyDE ──
+        st.markdown("**HyDE — Hypothetical Document Embedding**")
+        st.caption(
+            "Génère une réponse hypothétique avant de chercher. "
+            "Améliore le Context Recall."
+        )
+        hyde_enabled = st.toggle(
+            label="Activer HyDE",
+            value=pipeline.retriever.use_hyde
+            if pipeline.is_ready() else True
+        )
+        if pipeline.is_ready() and hyde_enabled != pipeline.retriever.use_hyde:
+            pipeline.retriever.toggle_hyde(hyde_enabled)
+            st.success(
+                f"✅ HyDE {'activé' if hyde_enabled else 'désactivé'}"
+            )
+
+        st.divider()
+
+        # ── Multi-query ──
+        st.markdown("**Multi-Query Retrieval**")
+        st.caption(
+            "Génère plusieurs reformulations de ta question. "
+            "Améliore la couverture des chunks."
+        )
+        multi_query_enabled = st.toggle(
+            label="Activer Multi-query",
+            value=pipeline.retriever.use_multi_query
+            if pipeline.is_ready() else True
+        )
+        if pipeline.is_ready() and (
+            multi_query_enabled != pipeline.retriever.use_multi_query
+        ):
+            pipeline.retriever.toggle_multi_query(multi_query_enabled)
+            st.success(
+                f"✅ Multi-query "
+                f"{'activé' if multi_query_enabled else 'désactivé'}"
+            )
+
+        if multi_query_enabled:
+            st.markdown("**Nombre de reformulations**")
+            st.caption("Plus de reformulations = meilleure couverture mais plus lent.")
+            new_n_queries = st.slider(
+                label="N queries",
+                min_value=1,
+                max_value=5,
+                value=pipeline.retriever.multi_query.n_queries
+                if pipeline.is_ready() and pipeline.retriever.multi_query
+                else 3,
+                label_visibility="collapsed"
+            )
+            if (
+                pipeline.is_ready()
+                and pipeline.retriever.multi_query
+                and new_n_queries != pipeline.retriever.multi_query.n_queries
+            ):
+                pipeline.retriever.multi_query.set_n_queries(new_n_queries)
+                st.success(f"✅ N queries mis à jour : {new_n_queries}")
 
 
 # ─────────────────────────────────────────
@@ -227,15 +288,12 @@ if question := st.chat_input("Pose ta question ici..."):
         with st.chat_message("assistant"):
             with st.spinner("🔍 Recherche en cours..."):
                 try:
-                    # Prépare l'historique pour le pipeline
-                    # On prend les 6 derniers messages pour ne pas
-                    # dépasser la fenêtre contextuelle du LLM
+                    # Prépare l'historique
                     chat_history = [
                         (msg["role"], msg["content"])
                         for msg in st.session_state.messages[-6:]
                     ]
 
-                    # Query avec historique
                     result = pipeline.query(
                         question=question,
                         chat_history=chat_history
@@ -243,15 +301,26 @@ if question := st.chat_input("Pose ta question ici..."):
 
                     st.markdown(result["answer"])
 
-                    # Affiche la question reformulée si différente
-                    if result["condensed_question"] != question:
+                    # Badges des techniques actives
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        if pipeline.retriever.use_hyde:
+                            st.success("💭 HyDE activé")
+                    with col2:
+                        if pipeline.retriever.use_multi_query:
+                            st.info("🔀 Multi-query activé")
+                    with col3:
+                        st.warning(f"🎯 Top K : {pipeline.top_k}")
+
+                    # Question reformulée
+                    if result.get("condensed_question") and \
+                    result["condensed_question"] != question:
                         with st.expander("🔄 Question reformulée"):
                             st.caption(
-                                f"Votre question a été reformulée en : "
                                 f"*{result['condensed_question']}*"
                             )
 
-                    # Affiche les sources
+                    # Sources
                     with st.expander(
                         "📚 Sources consultées (Preuve sémantique)"
                     ):
@@ -262,7 +331,7 @@ if question := st.chat_input("Pose ta question ici..."):
                                 f"— Score : `{source['score']}`"
                             )
 
-                    # Sauvegarde dans l'historique
+                    # Sauvegarde
                     st.session_state.messages.append({
                         "role": "assistant",
                         "content": result["answer"],

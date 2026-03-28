@@ -1,0 +1,15 @@
+{
+  "timestamp": "20260328_144242",
+  "scores": {
+    "faithfulness": 0.6125,
+    "answer_relevancy": 0.7877,
+    "context_recall": 0.9,
+    "context_precision": 0.8292
+  },
+  "average": 0.7823,
+  "num_questions": 20,
+  "num_failed": 0,
+  "model": "llama-3.1-8b-instant",
+  "top_k": 3,
+  "failed_questions": []
+}

@@ -14,7 +14,7 @@ class EmbeddingModel:
     - Performant : bon équilibre vitesse/qualité
     """
 
-    DEFAULT_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+    DEFAULT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
     def __init__(self, model_name: str = None):
         """
@@ -25,7 +25,7 @@ class EmbeddingModel:
         self.model_name = model_name or self.DEFAULT_MODEL
 
         print(f"⏳ Chargement du modèle d'embedding : {self.model_name}")
-        print(f"   (Premier lancement = téléchargement ~90Mo)")
+        print(f"   (Premier lancement = téléchargement ~470 Mo)")
 
         self.embeddings = HuggingFaceEmbeddings(
             model_name=self.model_name,

@@ -2,6 +2,7 @@ import os
 import json
 import hashlib
 from langchain_community.vectorstores import FAISS
+from langchain_community.vectorstores.utils import DistanceStrategy
 from src.embeddings import EmbeddingModel
 
 
@@ -215,7 +216,8 @@ class VectorStore:
         # Indexe les enfants dans FAISS
         self.vector_store = FAISS.from_documents(
             documents=children,
-            embedding=self.embeddings
+            embedding=self.embeddings,
+            distance_strategy=DistanceStrategy.COSINE
         )
 
         # Stocke les parents dans le dictionnaire
@@ -311,7 +313,8 @@ class VectorStore:
         self.vector_store = FAISS.load_local(
             load_path,
             self.embeddings,
-            allow_dangerous_deserialization=True
+            allow_dangerous_deserialization=True,
+            distance_strategy=DistanceStrategy.COSINE
         )
 
         # Charge les parents

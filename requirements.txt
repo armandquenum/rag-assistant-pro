@@ -14,7 +14,7 @@ groq==0.37.1
 
 # ─── Embeddings & Reranking ──────────────────────────
 sentence-transformers==5.3.0
-torch==2.10.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.10.0
 transformers==5.3.0
 
 # ─── Vector Store ────────────────────────────────────
